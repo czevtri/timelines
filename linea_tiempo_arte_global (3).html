@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hacia el arte global</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500&family=Lora:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#000;--cream:#FFF2CC;--white:#fff;--yellow:#FFFF00}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--cream);overflow:hidden}
+body{font-family:Lora,Georgia,serif}
+.stage{position:relative;height:100vh;width:100vw}
+.slide{position:absolute;top:7vh;left:7vw;right:7vw}
+.year{font-family:"Fira Code",monospace;font-weight:500;color:var(--yellow);font-size:clamp(20px,2.3vw,44px);letter-spacing:.04em;margin-bottom:2vh}
+.title{font-weight:700;color:var(--white);font-size:clamp(24px,3.1vw,60px);line-height:1.18;margin:0 0 2.6vh}
+.text{font-size:clamp(16px,2vw,38px);line-height:1.45;margin:0;max-width:70ch}
+.fade{transition:opacity .35s ease}
+.fade.out{opacity:0}
+.line{position:absolute;left:7vw;right:7vw;top:86vh;height:1px;background:rgba(255,242,204,.28)}
+.done{position:absolute;left:0;top:0;height:1px;background:var(--cream);width:0;transition:width .6s ease}
+.dot{position:absolute;width:9px;height:9px;border-radius:50%;background:var(--bg);border:1px solid var(--cream);transform:translate(-50%,-50%);cursor:pointer;padding:0;transition:background .3s ease,border-color .3s ease,width .3s ease,height .3s ease}
+.dot.past{background:var(--cream)}
+.dot.on{background:var(--yellow);border-color:var(--yellow);width:14px;height:14px}
+.tick{position:absolute;top:12px;transform:translateX(-50%);font-family:"Fira Code",monospace;font-size:clamp(11px,.9vw,16px);color:rgba(255,242,204,.55)}
+.ui{position:absolute;bottom:2.5vh;left:7vw;right:7vw;display:flex;justify-content:space-between;font-family:"Fira Code",monospace;font-size:clamp(12px,1vw,18px);color:var(--yellow)}
+.ui button{all:unset;cursor:pointer;color:var(--yellow)}
+.ui button:focus-visible,.dot:focus-visible{outline:1px solid var(--yellow);outline-offset:4px}
+@media (prefers-reduced-motion:reduce){.done,.dot,.fade{transition:none}}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="slide fade" id="slide" aria-live="polite">
+    <div class="year" id="year"></div>
+    <p class="title" id="title"></p>
+    <p class="text" id="text"></p>
+  </div>
+  <div class="line" id="line"><div class="done" id="done"></div></div>
+  <div class="ui">
+    <button id="play" aria-label="Reproducir">▶ play</button>
+    <span id="count"></span>
+  </div>
+</div>
+
+<script>
+const EVENTS = [
+  [1984, "<em>\"Primitivism\" in 20th Century Art</em>, MoMA, Nueva York",
+   "Curada por William Rubin, la exposición presenta objetos africanos y oceánicos junto a obras de Picasso y otros modernos como \"afinidades\" formales. En su ensayo \"Doctor Lawyer Indian Chief\" (<em>Artforum</em>, noviembre de 1984), Thomas McEvilley cuestiona que esos objetos se lean solo desde la mirada moderna occidental, separados de sus contextos. La polémica sigue en las cartas de la revista y abre la discusión sobre cómo los museos exhiben el arte de otras culturas."],
+  [1984, "Primera Bienal de La Habana",
+   "El Centro de Arte Contemporáneo Wifredo Lam organiza una bienal dedicada al llamado Tercer Mundo, con prioridad para los artistas de América Latina y el Caribe. Las primeras ediciones tienen convocatoria abierta, y el comité organizador lo preside Marcia Leiseca. Llilian Llanes dirigirá varias de las ediciones siguientes, que harán de La Habana un punto de encuentro entre artistas del Sur."],
+  [1987, "Nace <em>Third Text</em>, Londres",
+   "El artista y crítico Rasheed Araeen, nacido en Karachi en 1935 y radicado en Londres, funda una revista de crítica poscolonial del arte. <em>Third Text</em> discute el lugar de los artistas no occidentales en el sistema del arte y la manera en que la historia del arte moderno los dejó fuera. En sus páginas se discutirán las grandes exposiciones de los años siguientes, empezando por <em>Magiciens de la terre</em>."],
+  [1989, "<em>Magiciens de la terre</em>, París",
+   "Curada por Jean-Hubert Martin en el Centro Pompidou y la Grande Halle de la Villette, la exposición reúne en un mismo espacio a artistas occidentales y no occidentales de todos los continentes. Ese mismo año, <em>Third Text</em> le dedica su número 6, con un ensayo de Araeen, \"Our Bauhaus Others' Mudhouse\". La revista discute cómo la muestra asimila al otro como figura exótica."],
+  [1989, "Tercera Bienal de La Habana",
+   "Inaugurada el 1 de noviembre bajo el tema \"Tradición y contemporaneidad\", con una exposición central, \"Tres Mundos\", y cuatro núcleos temáticos. Elimina los pabellones nacionales y los premios, reemplaza la convocatoria abierta por una selección curatorial e incorpora una conferencia a su estructura. Para armarla, el equipo viajó a investigar el arte de África y Asia. La historiografía la considera una de las primeras exposiciones de alcance global organizadas fuera del sistema euroamericano."],
+  [1989, "<em>The Other Story</em>, Hayward Gallery, Londres",
+   "Rasheed Araeen cura en el South Bank Centre una exposición sobre el modernismo de artistas africanos, caribeños y asiáticos en Gran Bretaña, entre ellos Frank Bowling, Mona Hatoum y el propio Araeen. La muestra plantea que el modernismo británico tuvo una historia que los museos habían dejado sin contar. Después recorre Wolverhampton y Manchester."],
+  [1989, "Cae el Muro de Berlín",
+   "La caída del Muro, el 9 de noviembre, anuncia el fin de la Guerra Fría y, dos años después, la disolución de la Unión Soviética. Hans Belting toma ese momento como el umbral en que el arte global adquiere un sentido nuevo, junto con la apertura parcial de China al capitalismo y la expansión del comercio mundial."],
+  [1993, "Primera Asia Pacific Triennial, Brisbane",
+   "La Queensland Art Gallery inaugura en Australia la primera Asia Pacific Triennial of Contemporary Art, dedicada al arte contemporáneo de Asia y el Pacífico. Es una de las exposiciones que en esos años organizan el arte contemporáneo desde regiones que no son Europa ni Estados Unidos, y que Belting reunirá después bajo la idea de un mapa del arte que crece fuera de \"Euramérica\"."],
+  [1995, "Nace la Organización Mundial del Comercio",
+   "El 1 de enero de 1995 comienza a funcionar la Organización Mundial del Comercio, que reemplaza al GATT como marco de las reglas del comercio internacional. Belting incluye los nuevos acuerdos comerciales entre las condiciones que dieron forma al arte global, junto con la expansión del mercado del arte, sus casas de subastas y sus nuevos compradores."],
+  [1995, "Johannesburgo y Gwangju",
+   "Un año después de las primeras elecciones democráticas en Sudáfrica se realiza la primera Bienal de Johannesburgo, <em>Africus</em>, organizada por un comité encabezado por Christopher Till y Lorna Ferguson. En septiembre se funda en Corea del Sur la Bienal de Gwangju, cuya primera edición se titula <em>Beyond Borders</em> (Más allá de las fronteras)."],
+  [1996, "Bienal de Shanghái",
+   "Fang Zengxian, entonces director del Shanghai Art Museum, funda una bienal que el museo acogerá en sus primeras ocho ediciones. En la edición de 2000 invita por primera vez a artistas y curadores extranjeros, y es entonces cuando la bienal empieza a recibir atención internacional."],
+  [1997, "<em>Trade Routes: History and Geography</em>, Johannesburgo",
+   "El curador nigeriano Okwui Enwezor dirige la segunda Bienal de Johannesburgo, cuyo título propone pensar el arte desde las rutas del comercio y las conexiones entre continentes. La muestra cierra un mes antes de lo previsto porque la ciudad no tiene fondos para sostenerla. Cinco años después, Enwezor dirigirá documenta 11."],
+  [1998, "Antropofagia en São Paulo",
+   "La 24ª Bienal de São Paulo se organiza en torno a la antropofagia cultural, la idea que Oswald de Andrade propuso en su manifiesto de 1928: devorar la cultura de los centros para producir algo propio. Incluye un núcleo histórico que pone en diálogo obras de distintas épocas. Años después, la serie <em>Exhibition Histories</em> de Afterall le dedica un volumen."],
+  [2002, "documenta 11, Kassel",
+   "Okwui Enwezor, primer director no europeo de documenta, organiza cuatro plataformas de discusión antes de la exposición: sobre la democracia como proceso inacabado (Viena y Berlín), sobre verdad y reconciliación (Nueva Delhi), sobre criollización (Santa Lucía) y sobre cuatro ciudades africanas (Lagos). La exposición en Kassel, entre junio y septiembre de 2002, es la quinta plataforma."],
+  [2002, "Art Basel Miami Beach",
+   "La feria Art Basel, nacida en la ciudad suiza de Basilea, abre su primera sede fuera de Europa. La edición estaba prevista para 2001 y se postergó un año tras los atentados del 11 de septiembre. Miami se convierte en un punto de encuentro entre galerías de Europa, Estados Unidos y América Latina."],
+  [2003, "Frieze London",
+   "Amanda Sharp y Matthew Slotover, editores de la revista <em>frieze</em>, lanzan en el Regent's Park de Londres una feria de arte contemporáneo. Junto con Miami, consolida el formato de la feria como lugar donde galerías, coleccionistas y curadores de distintos países se encuentran cada año."],
+  [2006, "Global Art and the Museum, ZKM, Karlsruhe",
+   "Hans Belting, Peter Weibel y Andrea Buddensieg inician un proyecto de investigación sobre las nuevas prácticas de los museos y el crecimiento de las bienales fuera de \"Euramérica\" desde fines de los años ochenta. El proyecto funciona hasta 2016 y produce libros, conferencias y la exposición <em>The Global Contemporary</em>."],
+  [2008, "Art HK, Hong Kong",
+   "Nace la feria internacional de arte de Hong Kong. En 2013, MCH Group, la empresa matriz de Art Basel, la compra y la convierte en Art Basel Hong Kong, su primera sede en Asia. Según datos reunidos en 2015, Asia concentra cerca de una cuarta parte de las colecciones privadas de arte más importantes del mundo."],
+  [2009, "El arte global se teoriza",
+   "Belting publica \"Contemporary Art as Global Art\" en <em>The Global Art World</em>, editado con Buddensieg. Allí distingue el arte global del arte moderno y del \"arte del mundo\", y lo describe como una condición marcada por la geopolítica y el mercado. El mismo año, Terry Smith publica <em>What Is Contemporary Art?</em>, donde prefiere hablar de \"contemporaneidad\"."],
+  [2011, "La historia se escribe",
+   "<em>Afterall</em> publica el ensayo de Rachel Weiss sobre la Bienal de La Habana de 1989 como origen de la exposición global. En septiembre, el ZKM inaugura <em>The Global Contemporary: Art Worlds after 1989</em>, con Belting como asesor y un comité de curadores de África y Asia. La historiografía fija así 1989 como el año de origen del arte global."]
+];
+
+const MIN = 1980, MAX = 2012, STEP = 13000;
+const pos = y => ((y - MIN) / (MAX - MIN)) * 100;
+const $ = id => document.getElementById(id);
+const line = $("line");
+
+[1980, 1990, 2000, 2010].forEach(y => {
+  const t = document.createElement("span");
+  t.className = "tick"; t.style.left = pos(y) + "%"; t.textContent = y;
+  line.appendChild(t);
+});
+
+const stack = {};
+const dots = EVENTS.map((e, i) => {
+  const k = stack[e[0]] || 0; stack[e[0]] = k + 1;
+  const b = document.createElement("button");
+  b.className = "dot";
+  b.style.left = pos(e[0]) + "%";
+  b.style.top = (-k * 18) + "px";
+  b.setAttribute("aria-label", String(e[0]));
+  b.addEventListener("click", () => { stop(); go(i); });
+  line.appendChild(b);
+  return b;
+});
+
+let idx = 0, timer = null;
+
+function go(i) {
+  idx = Math.max(0, Math.min(EVENTS.length - 1, i));
+  const [y, t, x] = EVENTS[idx];
+  const slide = $("slide");
+  slide.classList.add("out");
+  setTimeout(() => {
+    $("year").textContent = y;
+    $("title").innerHTML = t;
+    $("text").innerHTML = x;
+    slide.classList.remove("out");
+  }, 300);
+  $("done").style.width = pos(y) + "%";
+  dots.forEach((d, j) => { d.classList.toggle("on", j === idx); d.classList.toggle("past", j < idx); });
+  $("count").textContent = String(idx + 1).padStart(2, "0") + "/" + EVENTS.length;
+}
+
+function play() {
+  if (idx === EVENTS.length - 1) go(0);
+  $("play").textContent = "❚❚ pausa";
+  timer = setInterval(() => {
+    if (idx < EVENTS.length - 1) go(idx + 1); else stop();
+  }, STEP);
+}
+function stop() {
+  clearInterval(timer); timer = null;
+  $("play").textContent = "▶ play";
+}
+
+$("play").addEventListener("click", () => timer ? stop() : play());
+document.addEventListener("keydown", ev => {
+  if (ev.code === "Space") { ev.preventDefault(); timer ? stop() : play(); }
+  else if (ev.key === "ArrowRight") { stop(); go(idx + 1); }
+  else if (ev.key === "ArrowLeft") { stop(); go(idx - 1); }
+});
+
+go(0);
+</script>
+</body>
+</html>
